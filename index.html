@@ -1,11 +1,198 @@
-<!doctype html>
-<html lang="pl">
-  <meta charset="utf-8">
-  <title>Wyślij PDF do n8n</title>
-  <h1>Wyślij PDF do n8n</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JeppSRC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: url('A_monochromatic_background_inspired_by_Jeppesen_en.png') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            position: relative;
+            min-height: 100vh;
+        }
 
-  <form action="https://n8n.srv972278.hstgr.cloud/webhook-test/aip-upload" method="POST" enctype="multipart/form-data">
-    <input type="file" name="file" accept="application/pdf" required>
-    <button type="submit">Wyślij</button>
-  </form>
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            opacity: 0.8;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .header {
+            background: rgba(0, 86, 214, 0.9);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+        }
+
+        .file-upload {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .file-upload h2 {
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .drop-area {
+            width: 100%;
+            height: 500px;
+            border: 3px dashed rgba(0, 86, 214, 0.8);
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            background: rgba(43, 43, 59, 0.9);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .drop-area:hover {
+            background: rgba(60, 60, 79, 0.9);
+        }
+
+        .button {
+            background: rgba(0, 86, 214, 0.9);
+            color: white;
+            padding: 20px 60px;
+            border: none;
+            cursor: pointer;
+            font-size: 22px;
+            font-weight: 700;
+            border-radius: 8px;
+            text-transform: uppercase;
+            margin-top: 60px;
+            transition: all 0.3s ease;
+        }
+
+        .button:hover {
+            background: rgba(0, 68, 179, 0.9);
+            transform: scale(1.05);
+        }
+
+        .button:disabled {
+            background: rgba(100, 100, 100, 0.5);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-info {
+            margin-top: 20px;
+            font-size: 16px;
+            color: rgba(0, 86, 214, 0.9);
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">JeppSRC</div>
+
+<div class="container">
+    <div class="file-upload">
+        <h2>Upload PDF File</h2>
+        <form id="uploadForm" action="https://n8n.srv972278.hstgr.cloud/webhook-test/aip-upload" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" id="fileInput" accept="application/pdf" hidden required>
+            <div class="drop-area" id="dropArea">
+                Drag & Drop or Click Here
+            </div>
+            <div class="file-info" id="fileInfo" style="display:none;"></div>
+            <button type="submit" class="button" id="submitBtn" disabled>Upload</button>
+        </form>
+    </div>
+</div>
+
+<script>
+const dropArea = document.getElementById('dropArea');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const submitBtn = document.getElementById('submitBtn');
+const uploadForm = document.getElementById('uploadForm');
+
+// Click on drop area opens file dialog
+dropArea.addEventListener('click', () => fileInput.click());
+
+// Prevent default browser behavior
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// Highlight drop area when dragging over it
+['dragenter', 'dragover'].forEach(eventName => {
+    dropArea.addEventListener(eventName, () => {
+        dropArea.style.background = "rgba(60, 60, 79, 0.9)";
+    });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, () => {
+        dropArea.style.background = "rgba(43, 43, 59, 0.9)";
+    });
+});
+
+// Handle dropped files
+dropArea.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    fileInput.files = files;
+    handleFiles(files);
+});
+
+// Handle file selection through dialog
+fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.type === 'application/pdf') {
+            dropArea.textContent = file.name;
+            fileInfo.style.display = 'block';
+            fileInfo.textContent = `Selected file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            submitBtn.disabled = false;
+        } else {
+            alert('Please select a PDF file!');
+            fileInput.value = '';
+            submitBtn.disabled = true;
+        }
+    }
+}
+</script>
+
+</body>
 </html>
