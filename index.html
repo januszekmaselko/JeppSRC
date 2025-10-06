@@ -34,7 +34,7 @@
         }
 
         .header {
-            background: rgba(0, 86, 214, 0.9);
+            background: rgba(25, 55, 95, 0.95);
             color: white;
             padding: 30px;
             text-align: center;
@@ -64,11 +64,11 @@
         .drop-area {
             width: 100%;
             height: 180px;
-            border: 3px dashed rgba(0, 86, 214, 0.8);
+            border: 3px dashed rgba(25, 55, 95, 0.9);
             padding: 20px;
             text-align: center;
             border-radius: 10px;
-            background: rgba(43, 43, 59, 0.9);
+            background: rgba(70, 70, 90, 0.9);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -79,11 +79,11 @@
         }
 
         .drop-area:hover {
-            background: rgba(60, 60, 79, 0.9);
+            background: rgba(90, 90, 110, 0.9);
         }
 
         .button {
-            background: rgba(0, 86, 214, 0.9);
+            background: rgba(25, 55, 95, 0.95);
             color: white;
             padding: 20px 60px;
             border: none;
@@ -92,12 +92,12 @@
             font-weight: 700;
             border-radius: 8px;
             text-transform: uppercase;
-            margin-top: 60px;
+            margin-top: 30px;
             transition: all 0.3s ease;
         }
 
         .button:hover {
-            background: rgba(0, 68, 179, 0.9);
+            background: rgba(35, 70, 115, 0.95);
             transform: scale(1.05);
         }
 
@@ -110,7 +110,7 @@
         .file-info {
             margin-top: 20px;
             font-size: 16px;
-            color: rgba(0, 86, 214, 0.9);
+            color: rgba(25, 55, 95, 0.9);
         }
     </style>
 </head>
@@ -155,13 +155,13 @@ function preventDefaults(e) {
 // Highlight drop area when dragging over it
 ['dragenter', 'dragover'].forEach(eventName => {
     dropArea.addEventListener(eventName, () => {
-        dropArea.style.background = "rgba(60, 60, 79, 0.9)";
+        dropArea.style.background = "rgba(90, 90, 110, 0.9)";
     });
 });
 
 ['dragleave', 'drop'].forEach(eventName => {
     dropArea.addEventListener(eventName, () => {
-        dropArea.style.background = "rgba(43, 43, 59, 0.9)";
+        dropArea.style.background = "rgba(70, 70, 90, 0.9)";
     });
 });
 
