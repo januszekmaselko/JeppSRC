@@ -148,6 +148,17 @@
     </div>
 
     <script>
+        // KRYTYCZNE: Zapobiegaj otwieraniu PDF w przeglądarce
+        window.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+        
+        window.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+
         const { PDFDocument } = PDFLib;
         let selectedFile = null;
 
@@ -162,19 +173,25 @@
 
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.add('dragover');
         });
 
-        uploadArea.addEventListener('dragleave', () => {
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.remove('dragover');
         });
 
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.remove('dragover');
             const file = e.dataTransfer.files[0];
             if (file && file.type === 'application/pdf') {
                 handleFile(file);
+            } else {
+                showStatus('error', 'Proszę wrzucić plik PDF!');
             }
         });
 
@@ -190,15 +207,15 @@
             
             uploadArea.style.padding = '20px';
             uploadArea.style.marginBottom = '20px';
-            uploadArea.innerHTML = \`
+            uploadArea.innerHTML = `
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div>
-                        <div style="font-size: 1em; font-weight: 500; color: #4ade80;">✓ \${file.name}</div>
-                        <div style="color: #6b7280; font-size: 0.85em; margin-top: 4px;">\${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                        <div style="font-size: 1em; font-weight: 500; color: #4ade80;">✓ ${file.name}</div>
+                        <div style="color: #6b7280; font-size: 0.85em; margin-top: 4px;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
                     </div>
                     <button onclick="location.reload()" style="width: auto; padding: 8px 16px; font-size: 0.85em; background: #374151; text-transform: none;">Change file</button>
                 </div>
-            \`;
+            `;
             processBtn.disabled = false;
             processBtn.textContent = 'Process AMDT Document';
         }
@@ -222,7 +239,7 @@
                 const pdfDoc = await PDFDocument.load(arrayBuffer);
                 const totalPages = pdfDoc.getPageCount();
 
-                showStatus('info', \`Analyzing document structure (\${totalPages} pages) with Gemini AI...\`);
+                showStatus('info', `Analyzing document structure (${totalPages} pages) with Gemini AI...`);
                 const pdfBytes = await selectedFile.arrayBuffer();
                 
                 const uint8Array = new Uint8Array(pdfBytes);
@@ -248,11 +265,11 @@
                     
                     const warningDiv = document.createElement('div');
                     warningDiv.className = 'status warning';
-                    warningDiv.innerHTML = \`<strong>⚠ WARNING:</strong> \${missingPages.length} pages were unassigned and grouped into UNKNOWN file: \${missingPages.join(', ')}\`;
+                    warningDiv.innerHTML = `<strong>⚠ WARNING:</strong> ${missingPages.length} pages were unassigned and grouped into UNKNOWN file: ${missingPages.join(', ')}`;
                     statusDiv.parentNode.insertBefore(warningDiv, statusDiv);
                 }
 
-                showStatus('info', \`Splitting document into \${groups.length} files...\`);
+                showStatus('info', `Splitting document into ${groups.length} files...`);
                 const results = [];
 
                 for (const group of groups) {
@@ -275,7 +292,7 @@
                     });
                 }
 
-                showStatus('success', \`Complete! Document split into \${results.length} files.\`);
+                showStatus('success', `Complete! Document split into ${results.length} files.`);
                 displayResults(results);
 
             } catch (error) {
@@ -300,9 +317,9 @@ Otrzymasz dokument PDF. Musisz go przeanalizować i zwrócić JSON.
 KRYTYCZNE: ŻADNA strona nie może zostać pominięta!
 
 
-════════════════════════════════════════
+╔══════════════════════════════════════
 KROK 1: ROZPOZNAJ KRAJ I PREFIKS ICAO
-════════════════════════════════════════
+╚══════════════════════════════════════
 
 1.1) Przeczytaj stronę 1 (FRONT PAGE)
 1.2) Znajdź nazwę kraju w tytule dokumentu
@@ -548,9 +565,9 @@ ZW - Chiny
 ZY - Chiny
 
 
-════════════════════════════════════════
+╔══════════════════════════════════════
 KROK 2: ANALIZA KAŻDEJ STRONY
-════════════════════════════════════════
+╚══════════════════════════════════════
 
 Dla każdej strony od 1 do końca dokumentu wykonaj:
 
@@ -586,9 +603,9 @@ Dla każdej strony od 1 do końca dokumentu wykonaj:
      - Przypisz do tej samej grupy co poprzednia strona
 
 
-════════════════════════════════════════
+╔══════════════════════════════════════
 KROK 3: GRUPOWANIE STRON
-════════════════════════════════════════
+╚══════════════════════════════════════
 
 3.1) FRONT PAGE:
      - Grupuj wszystkie strony typu [A]
@@ -633,9 +650,9 @@ KROK 3: GRUPOWANIE STRON
      3.3.5) Tytuł grupy = kod ICAO (np. "LROP", "EPWA")
 
 
-════════════════════════════════════════
+╔══════════════════════════════════════
 KROK 4: WYPEŁNIENIE DRUGIEJ KOLUMNY
-════════════════════════════════════════
+╚══════════════════════════════════════
 
 Dla każdej grupy określ wartość pola "description":
 
@@ -788,9 +805,9 @@ AD 3.22 = "Additional information"
 AD 3.23 = "Charts related to a heliport"
 
 
-════════════════════════════════════════
+╔══════════════════════════════════════
 KROK 5: WYKRYWANIE PODSEKCJI AD 2.x
-════════════════════════════════════════
+╚══════════════════════════════════════
 
 TYLKO dla grup AD 2.x (ICAO):
 
@@ -823,9 +840,9 @@ TYLKO dla grup AD 2.x (ICAO):
      Przykład: ["AD 2.1", "AD 2.12", "AD 2.14", "AD 2.18"]
 
 
-════════════════════════════════════════
+╔══════════════════════════════════════
 KROK 6: WYGENERUJ JSON
-════════════════════════════════════════
+╚══════════════════════════════════════
 
 Zwróć JSON w formacie:
 
