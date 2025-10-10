@@ -99,19 +99,35 @@
         .results {
             margin-top: 30px;
         }
+        .results-header {
+            display: grid;
+            grid-template-columns: 2fr 3fr 1fr;
+            gap: 15px;
+            padding: 12px 15px;
+            background: #667eea;
+            color: white;
+            border-radius: 10px 10px 0 0;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
         .result-item {
             padding: 15px;
             background: #f5f5f5;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
+            border-radius: 0;
+            margin-bottom: 0;
+            display: grid;
+            grid-template-columns: 2fr 3fr 1fr;
+            gap: 15px;
             align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .result-item:last-child {
+            border-radius: 0 0 10px 10px;
         }
         .result-item button {
-            width: auto;
+            width: 100%;
             padding: 10px 20px;
-            font-size: 1em;
+            font-size: 0.95em;
         }
         .spinner {
             display: inline-block;
@@ -125,11 +141,70 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        .debug-panel {
+            margin-top: 30px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .debug-header {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .debug-header:hover {
+            background: #5568d3;
+        }
+        .debug-content {
+            padding: 20px;
+            background: #f8f9ff;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .debug-content.open {
+            display: block;
+        }
+        .debug-group {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .debug-group-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        .debug-info {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #333;
+            line-height: 1.6;
+        }
+        .debug-pages {
+            color: #666;
+            margin-top: 5px;
+        }
+        .debug-warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div style="position: absolute; top: 10px; right: 10px; font-size: 0.75em; color: #7a8ba0; font-weight: 500;">v5.0 Gemini</div>
+        <!-- WAŻNE: Za każdym razem gdy modyfikujesz ten plik HTML, ZAKTUALIZUJ numer wersji poniżej! -->
+        <!-- Format: v[major].[minor] Gemini -->
+        <div style="position: absolute; top: 10px; right: 10px; font-size: 0.75em; color: #7a8ba0; font-weight: 500;">v5.1 Gemini</div>
         <h1>JeppSRC</h1>
         <p class="subtitle">AIP AMDT Document Splitter - ICAO Annex 15 Compliant</p>
         
@@ -145,6 +220,13 @@
 
         <div id="status"></div>
         <div id="results" class="results"></div>
+        <div id="debugPanel" class="debug-panel" style="display: none;">
+            <div class="debug-header" onclick="toggleDebug()">
+                📊 Analysis Details (click to expand)
+                <span id="debugArrow">▼</span>
+            </div>
+            <div id="debugContent" class="debug-content"></div>
+        </div>
     </div>
 
     <script>
@@ -287,13 +369,14 @@
                         title: group.group_title,
                         blob: blob,
                         pages: group.pages.length,
+                        pagesArray: group.pages,  // Zapisz pełną listę stron
                         description: group.description || '',
                         subsections: group.subsections || []
                     });
                 }
 
                 showStatus('success', `Complete! Document split into ${results.length} files.`);
-                displayResults(results);
+                displayResults(results, totalPages);
 
             } catch (error) {
                 showStatus('error', 'Error: ' + error.message);
@@ -966,8 +1049,23 @@ Na końcu dodaj: __END__`;
             statusDiv.textContent = message;
         }
 
-        function displayResults(results) {
-            resultsDiv.innerHTML = '<h3 style="margin-bottom: 20px; color: #c9d1d9; font-weight: 500; font-size: 1.1em;">Download split files:</h3>';
+        function toggleDebug() {
+            const content = document.getElementById('debugContent');
+            const arrow = document.getElementById('debugArrow');
+            content.classList.toggle('open');
+            arrow.textContent = content.classList.contains('open') ? '▲' : '▼';
+        }
+
+        function displayResults(results, totalPages) {
+            // Tabela wyników z nagłówkami
+            resultsDiv.innerHTML = `
+                <h3 style="margin-bottom: 20px; color: #c9d1d9; font-weight: 500; font-size: 1.1em;">Download split files:</h3>
+                <div class="results-header">
+                    <div>Section</div>
+                    <div>Description</div>
+                    <div>Download</div>
+                </div>
+            `;
             
             results.forEach((result, index) => {
                 const div = document.createElement('div');
@@ -991,6 +1089,105 @@ Na końcu dodaj: __END__`;
             });
 
             window.pdfResults = results;
+            
+            // Panel diagnostyczny
+            showDebugInfo(results, totalPages);
+        }
+
+        function showDebugInfo(results, totalPages) {
+            const debugPanel = document.getElementById('debugPanel');
+            const debugContent = document.getElementById('debugContent');
+            
+            debugPanel.style.display = 'block';
+            
+            // Zbierz wszystkie przydzielone strony
+            const assignedPages = new Set();
+            results.forEach(result => {
+                if (result.pagesArray) {
+                    result.pagesArray.forEach(page => assignedPages.add(page));
+                }
+            });
+            
+            // Znajdź duplikaty
+            const pageCount = {};
+            results.forEach(result => {
+                if (result.pagesArray) {
+                    result.pagesArray.forEach(page => {
+                        pageCount[page] = (pageCount[page] || 0) + 1;
+                    });
+                }
+            });
+            const duplicates = Object.keys(pageCount).filter(page => pageCount[page] > 1).map(Number);
+            
+            // Znajdź brakujące strony
+            const missingPages = [];
+            if (totalPages) {
+                for (let i = 1; i <= totalPages; i++) {
+                    if (!assignedPages.has(i)) {
+                        missingPages.push(i);
+                    }
+                }
+            }
+            
+            let html = '';
+            
+            // Szczegóły każdej grupy
+            results.forEach((result, index) => {
+                const isWarning = result.title === 'UNKNOWN';
+                html += `
+                    <div class="debug-group ${isWarning ? 'debug-warning' : ''}">
+                        <div class="debug-group-title">${index + 1}. ${result.title}</div>
+                        <div class="debug-info">
+                            <strong>Pages:</strong> ${result.pagesArray ? result.pagesArray.join(', ') : 'N/A'}
+                            <div class="debug-pages">Total: ${result.pages} page(s)</div>
+                        </div>
+                        <div class="debug-info">
+                            <strong>Description:</strong> ${result.description || (result.subsections?.length ? result.subsections.join(', ') : 'None')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Duplikaty (jeśli są)
+            if (duplicates.length > 0) {
+                html += `
+                    <div class="debug-group" style="border-left-color: #dc3545; background: #fff5f5;">
+                        <div class="debug-group-title" style="color: #dc3545;">⚠️ DUPLICATED PAGES</div>
+                        <div class="debug-info" style="color: #721c24;">
+                            <strong>Pages assigned to multiple sections:</strong> ${duplicates.join(', ')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Brakujące strony (jeśli są)
+            if (missingPages.length > 0) {
+                html += `
+                    <div class="debug-group" style="border-left-color: #ffc107; background: #fffbf0;">
+                        <div class="debug-group-title" style="color: #ffc107;">⚠️ MISSING PAGES</div>
+                        <div class="debug-info" style="color: #856404;">
+                            <strong>Pages NOT assigned to any section:</strong> ${missingPages.join(', ')}
+                            <div class="debug-pages">Total missing: ${missingPages.length} page(s)</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Podsumowanie
+            html += `
+                <div class="debug-group" style="border-left-color: #28a745;">
+                    <div class="debug-group-title" style="color: #28a745;">📊 Summary</div>
+                    <div class="debug-info">
+                        <strong>Total document pages:</strong> ${totalPages || 'Unknown'}<br>
+                        <strong>Total files created:</strong> ${results.length}<br>
+                        <strong>Total pages assigned:</strong> ${assignedPages.size}<br>
+                        <strong>Duplicated pages:</strong> ${duplicates.length > 0 ? duplicates.length + ' ⚠️' : 'None ✓'}<br>
+                        <strong>Missing pages:</strong> ${missingPages.length > 0 ? missingPages.length + ' ⚠️' : 'None ✓'}
+                    </div>
+                </div>
+            `;
+            
+            debugContent.innerHTML = html;
         }
 
         window.downloadPDF = function(index) {
